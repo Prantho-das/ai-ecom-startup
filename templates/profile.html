@@ -1,0 +1,117 @@
+{% extends "base.html" %} {% block content %}
+<div class="card" style="max-width: 900px; margin: 0 auto">
+  <div
+    style="
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 2rem;
+      margin-bottom: 2rem;
+    "
+  >
+    <div class="avatar" style="width: 100px; height: 100px; font-size: 3rem">
+      <i class="fas fa-user-tie"></i>
+    </div>
+    <div>
+      <h1 style="margin: 0">{{ user.name }}</h1>
+      <p style="color: var(--primary); font-weight: 600">
+        ম্যানেজার / ব্যবসায়ী
+      </p>
+      <div style="display: flex; gap: 1rem; margin-top: 0.5rem">
+        <span
+          class="badge"
+          style="background: rgba(99, 102, 241, 0.2); color: var(--primary)"
+          >ID: {{ user.id }}</span
+        >
+        <span
+          class="badge"
+          style="background: rgba(16, 185, 129, 0.2); color: #10b981"
+          >সক্রিয় (Active)</span
+        >
+      </div>
+    </div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: 1fr 1fr">
+    <div>
+      <h3 style="margin-bottom: 1rem">
+        <i class="fas fa-info-circle"></i> সাধারণ তথ্য
+      </h3>
+      <div style="display: flex; flex-direction: column; gap: 1rem">
+        <div>
+          <label
+            style="display: block; color: var(--text-dim); font-size: 0.875rem"
+            >ইমেইল অ্যাড্রেস</label
+          >
+          <p style="font-size: 1.1rem">{{ user.email }}</p>
+        </div>
+        <div>
+          <label
+            style="display: block; color: var(--text-dim); font-size: 0.875rem"
+            >ফোন নম্বর</label
+          >
+          <p style="font-size: 1.1rem">{{ user.phone }}</p>
+        </div>
+        <div>
+          <label
+            style="display: block; color: var(--text-dim); font-size: 0.875rem"
+            >সোর্স ওয়েবসাইট</label
+          >
+          <p style="font-size: 1.1rem">{{ user.source_website }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h3 style="margin-bottom: 1rem">
+        <i class="fas fa-map-marker-alt"></i> ঠিকানা
+      </h3>
+      {% if user.addresses %} {% for addr in user.addresses %}
+      <div
+        style="
+          background: rgba(255, 255, 255, 0.05);
+          padding: 1rem;
+          border-radius: 0.5rem;
+          margin-bottom: 0.5rem;
+        "
+      >
+        <p><strong>{{ addr.city }}, {{ addr.district }}</strong></p>
+        <p style="color: var(--text-dim)">{{ addr.address }}</p>
+      </div>
+      {% endfor %} {% else %}
+      <p style="color: var(--text-dim)">কোনো ঠিকানা যোগ করা হয়নি।</p>
+      {% endif %}
+      <button
+        class="btn"
+        style="
+          margin-top: 1rem;
+          background: transparent;
+          border: 1px solid var(--primary);
+          color: var(--primary);
+        "
+      >
+        নতুন ঠিকানা যোগ করুন
+      </button>
+    </div>
+  </div>
+
+  <div
+    style="
+      margin-top: 3rem;
+      border-top: 1px solid var(--border);
+      padding-top: 2rem;
+    "
+  >
+    <h3 style="margin-bottom: 1rem">
+      <i class="fas fa-shield-alt"></i> নিরাপত্তা (Security)
+    </h3>
+    <div style="display: flex; gap: 1rem">
+      <button class="btn">পাসওয়ার্ড পরিবর্তন করুন</button>
+      <button class="btn" style="background: #ef4444">
+        অ্যাকাউন্ট ডিঅ্যাক্টিভেট করুন
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}

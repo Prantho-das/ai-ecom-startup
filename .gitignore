@@ -1,0 +1,113 @@
+# ========================
+# Python
+# ========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+*.egg
+MANIFEST
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Typing
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+
+# Profiling
+prof/
+
+# ========================
+# Virtual Environments
+# ========================
+venv/
+.venv/
+env/
+ENV/
+
+# ========================
+# Environment Variables
+# ========================
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# ========================
+# IDEs & Editors
+# ========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# ========================
+# OS Files
+# ========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ========================
+# Alembic
+# ========================
+alembic/versions/__pycache__/
+
+# ========================
+# Docker
+# ========================
+*.log
+docker-compose.override.yml
+
+# ========================
+# Misc
+# ========================
+*.bak
+*.tmp
+*.temp
+.ipynb_checkpoints/
+celerybeat-schedule
+celerybeat.pid

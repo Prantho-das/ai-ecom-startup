@@ -1,0 +1,315 @@
+================================================================================
+                    E-COMMERCE PREDICTOR - FastAPI Project Plan
+================================================================================
+
+1. PROJECT OVERVIEW
+================================================================================
+A professional FastAPI backend that aggregates user, product, and order data
+from multiple third-party e-commerce websites (Sailor, Rise, etc.). It provides
+JWT-authenticated REST APIs for managing consumers, products, orders, and
+order details.
+
+2. TECH STACK
+================================================================================
+- Framework       : FastAPI
+- ORM             : SQLAlchemy (async support)
+- Migrations      : Alembic
+- Database        : PostgreSQL
+- Auth            : JWT (python-jose + passlib + bcrypt)
+- Validation      : Pydantic v2
+- Server          : Uvicorn
+- Env Management  : python-dotenv
+- Testing         : Pytest + httpx
+
+3. PROJECT FOLDER STRUCTURE
+================================================================================
+
+ecomPredictor/
+│
+├── app/
+│   ├── __init__.py
+│   ├── main.py                     # FastAPI app entry point
+│   ├── config.py                   # Settings / env config (dotenv)
+│   ├── database.py                 # DB engine, session, Base
+│   │
+│   ├── auth/
+│   │   ├── __init__.py
+│   │   ├── router.py               # Login / register endpoints
+│   │   ├── schemas.py              # Auth request/response schemas
+│   │   ├── service.py              # JWT creation, password hashing
+│   │   └── dependencies.py         # get_current_user dependency
+│   │
+│   ├── users/
+│   │   ├── __init__.py
+│   │   ├── router.py               # User CRUD endpoints
+│   │   ├── models.py               # User + UserAddress SQLAlchemy models
+│   │   ├── schemas.py              # Pydantic schemas for users
+│   │   └── service.py              # Business logic for users
+│   │
+│   ├── products/
+│   │   ├── __init__.py
+│   │   ├── router.py               # Product CRUD endpoints
+│   │   ├── models.py               # Product SQLAlchemy model
+│   │   ├── schemas.py              # Pydantic schemas for products
+│   │   └── service.py              # Business logic for products
+│   │
+│   ├── orders/
+│   │   ├── __init__.py
+│   │   ├── router.py               # Order + OrderDetail endpoints
+│   │   ├── models.py               # Order + OrderDetail SQLAlchemy models
+│   │   ├── schemas.py              # Pydantic schemas for orders
+│   │   └── service.py              # Business logic for orders
+│   │
+│   └── utils/
+│       ├── __init__.py
+│       └── common.py               # Shared utilities, pagination, etc.
+│
+├── alembic/                        # Alembic migration folder (auto-generated)
+│   ├── versions/
+│   ├── env.py
+│   └── script.py.mako
+│
+├── alembic.ini                     # Alembic config
+├── requirements.txt                # Python dependencies
+├── .env                            # Environment variables (not in git)
+├── .env.example                    # Example env file (in git)
+├── .gitignore
+└── README.md
+
+4. DATABASE SCHEMA
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────┐
+│  TABLE: users                                                       │
+├─────────────────────────────────────────────────────────────────────┤
+│  id              : Integer, Primary Key, Auto Increment             │
+│  name            : String(100), Not Null                            │
+│  phone           : String(20), Not Null                             │
+│  email           : String(150), Unique, Not Null                    │
+│  type            : String(50), Default='consumer'                   │
+│  source_website  : String(100), Not Null  (e.g. sailor, rise)      │
+│  is_active       : Boolean, Default=True                            │
+│  created_at      : DateTime, Default=now                            │
+│  updated_at      : DateTime, Default=now, OnUpdate=now              │
+└─────────────────────────────────────────────────────────────────────┘
+        │
+        │ 1:N
+        ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  TABLE: user_addresses                                              │
+├─────────────────────────────────────────────────────────────────────┤
+│  id              : Integer, Primary Key, Auto Increment             │
+│  user_id         : Integer, Foreign Key → users.id, Not Null        │
+│  country         : String(100), Not Null                            │
+│  city            : String(100), Not Null                            │
+│  district        : String(100), Nullable                            │
+│  address         : Text, Not Null                                   │
+│  is_default      : Boolean, Default=False                           │
+│  created_at      : DateTime, Default=now                            │
+│  updated_at      : DateTime, Default=now, OnUpdate=now              │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│  TABLE: products                                                    │
+├─────────────────────────────────────────────────────────────────────┤
+│  id              : Integer, Primary Key, Auto Increment             │
+│  product_name    : String(255), Not Null                            │
+│  barcode         : String(100), Nullable                            │
+│  price           : Numeric(10,2), Not Null                          │
+│  sku             : String(100), Unique, Not Null                    │
+│  variant         : Text, Nullable   (free text field)               │
+│  source_website  : String(100), Not Null  (e.g. sailor, rise)      │
+│  is_active       : Boolean, Default=True                            │
+│  created_at      : DateTime, Default=now                            │
+│  updated_at      : DateTime, Default=now, OnUpdate=now              │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│  TABLE: orders                                                      │
+├─────────────────────────────────────────────────────────────────────┤
+│  id              : Integer, Primary Key, Auto Increment             │
+│  order_number    : String(100), Unique, Not Null                    │
+│  user_id         : Integer, Foreign Key → users.id, Not Null        │
+│  total_amount    : Numeric(12,2), Default=0.00                      │
+│  status          : String(50), Default='pending'                    │
+│                    (pending / confirmed / shipped / delivered /      │
+│                     cancelled)                                      │
+│  source_website  : String(100), Not Null                            │
+│  created_at      : DateTime, Default=now                            │
+│  updated_at      : DateTime, Default=now, OnUpdate=now              │
+└─────────────────────────────────────────────────────────────────────┘
+        │
+        │ 1:N
+        ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  TABLE: order_details                                               │
+├─────────────────────────────────────────────────────────────────────┤
+│  id              : Integer, Primary Key, Auto Increment             │
+│  order_id        : Integer, Foreign Key → orders.id, Not Null       │
+│  product_id      : Integer, Foreign Key → products.id, Not Null     │
+│  quantity         : Integer, Not Null, Default=1                    │
+│  unit_price      : Numeric(10,2), Not Null                          │
+│  total_price     : Numeric(12,2), Not Null                          │
+│  created_at      : DateTime, Default=now                            │
+│  updated_at      : DateTime, Default=now, OnUpdate=now              │
+└─────────────────────────────────────────────────────────────────────┘
+
+TABLE: admin_users  (for JWT login)
+┌─────────────────────────────────────────────────────────────────────┐
+│  id              : Integer, Primary Key, Auto Increment             │
+│  username        : String(100), Unique, Not Null                    │
+│  email           : String(150), Unique, Not Null                    │
+│  hashed_password : String(255), Not Null                            │
+│  is_active       : Boolean, Default=True                            │
+│  created_at      : DateTime, Default=now                            │
+└─────────────────────────────────────────────────────────────────────┘
+
+5. RELATIONSHIPS
+================================================================================
+- User         → UserAddress     : One-to-Many
+- User         → Order           : One-to-Many
+- Order        → OrderDetail     : One-to-Many
+- Product      → OrderDetail     : One-to-Many (product referenced in order)
+
+6. API ENDPOINTS
+================================================================================
+
+A) AUTH ENDPOINTS                           (Prefix: /api/v1/auth)
+─────────────────────────────────────────────────────────────────
+POST   /register          Register a new admin user
+POST   /login             Login and receive JWT access token
+GET    /me                Get current logged-in user info
+
+B) USER ENDPOINTS (Protected)              (Prefix: /api/v1/users)
+─────────────────────────────────────────────────────────────────
+POST   /                  Create a new consumer user
+GET    /                  List all users (with pagination & filters)
+GET    /{user_id}         Get single user with addresses
+PUT    /{user_id}         Update user details
+DELETE /{user_id}         Soft-delete user (set is_active=False)
+
+C) USER ADDRESS ENDPOINTS (Protected)     (Prefix: /api/v1/users/{user_id}/addresses)
+─────────────────────────────────────────────────────────────────
+POST   /                  Add address for a user
+GET    /                  List all addresses for a user
+PUT    /{address_id}      Update an address
+DELETE /{address_id}      Delete an address
+
+D) PRODUCT ENDPOINTS (Protected)           (Prefix: /api/v1/products)
+─────────────────────────────────────────────────────────────────
+POST   /                  Add a new product
+GET    /                  List all products (with pagination & filters)
+GET    /{product_id}      Get single product details
+PUT    /{product_id}      Update product
+DELETE /{product_id}      Soft-delete product
+
+E) ORDER ENDPOINTS (Protected)             (Prefix: /api/v1/orders)
+─────────────────────────────────────────────────────────────────
+POST   /                  Create a new order (with order details)
+GET    /                  List all orders (with pagination & filters)
+GET    /{order_id}        Get single order with order details
+PUT    /{order_id}        Update order status
+DELETE /{order_id}        Cancel/soft-delete order
+
+F) ORDER DETAIL ENDPOINTS (Protected)     (Prefix: /api/v1/orders/{order_id}/details)
+─────────────────────────────────────────────────────────────────
+POST   /                  Add item to order
+GET    /                  List all items in an order
+PUT    /{detail_id}       Update order detail (quantity, etc.)
+DELETE /{detail_id}       Remove item from order
+
+7. JWT AUTHENTICATION FLOW
+================================================================================
+1. Admin registers via POST /api/v1/auth/register
+2. Admin logs in via POST /api/v1/auth/login → receives access_token
+3. All other endpoints require header: Authorization: Bearer <access_token>
+4. Token payload: { sub: user_id, exp: expiry_timestamp }
+5. Token expiry: configurable (default 60 minutes)
+6. Password hashing: bcrypt via passlib
+
+8. IMPLEMENTATION PHASES
+================================================================================
+
+PHASE 1 — Project Setup & Configuration
+  [ ] Initialize project folder structure
+  [ ] Create requirements.txt with all dependencies
+  [ ] Setup .env / .env.example / .gitignore
+  [ ] Configure database.py (SQLAlchemy engine + session)
+  [ ] Configure config.py (Pydantic Settings)
+  [ ] Setup app/main.py (FastAPI app with CORS, routers)
+
+PHASE 2 — Database Models & Migrations
+  [ ] Create User + UserAddress models
+  [ ] Create Product model
+  [ ] Create Order + OrderDetail models
+  [ ] Create AdminUser model
+  [ ] Initialize Alembic & generate first migration
+  [ ] Run migration to create tables
+
+PHASE 3 — Authentication Module
+  [ ] Implement password hashing service
+  [ ] Implement JWT token creation / verification
+  [ ] Create auth schemas (register, login, token response)
+  [ ] Create auth router (register, login, /me)
+  [ ] Create get_current_user dependency
+
+PHASE 4 — User Module
+  [ ] Create user Pydantic schemas
+  [ ] Create user service (CRUD operations)
+  [ ] Create user router (all endpoints)
+  [ ] Create user address sub-router
+
+PHASE 5 — Product Module
+  [ ] Create product Pydantic schemas
+  [ ] Create product service (CRUD operations)
+  [ ] Create product router (all endpoints)
+
+PHASE 6 — Order Module
+  [ ] Create order + order detail Pydantic schemas
+  [ ] Create order service (CRUD + nested order details)
+  [ ] Create order router (all endpoints)
+  [ ] Create order detail sub-router
+
+PHASE 7 — Testing & Polish
+  [ ] Add pagination utility
+  [ ] Add error handling middleware
+  [ ] Write Pytest test cases
+  [ ] Add README.md with setup instructions
+
+9. DEPENDENCIES (requirements.txt)
+================================================================================
+fastapi
+uvicorn[standard]
+sqlalchemy
+alembic
+psycopg2-binary
+python-jose[cryptography]
+passlib[bcrypt]
+python-dotenv
+python-multipart
+pydantic[email]
+pydantic-settings
+httpx                    # for testing
+
+10. ENVIRONMENT VARIABLES (.env)
+================================================================================
+DATABASE_URL=postgresql://user:password@localhost:5432/ecom_predictor
+SECRET_KEY=your-super-secret-key-here
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+
+11. NOTES
+================================================================================
+- All third-party websites (Sailor, Rise, etc.) are tracked via the
+  "source_website" field on users, products, and orders.
+- User type is defaulted to "consumer" as per requirements.
+- User addresses are stored in a separate table with a foreign key
+  to the users table (one user can have multiple addresses).
+- Product variant is a free-text field to accommodate flexible variant info.
+- Soft deletes are used (is_active flag) instead of hard deletes.
+- All timestamps use UTC.
+- API is versioned under /api/v1/ for future compatibility.
+
+================================================================================
+                           END OF PLAN
+================================================================================

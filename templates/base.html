@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="bn">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title }} - EcomPredictor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Hind+Siliguri:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      :root {
+        --primary: #6366f1;
+        --primary-dark: #4f46e5;
+        --secondary: #94a3b8;
+        --background: #0f172a;
+        --surface: #1e293b;
+        --text-main: #f8fafc;
+        --text-dim: #94a3b8;
+        --glass: rgba(30, 41, 59, 0.7);
+        --border: rgba(255, 255, 255, 0.1);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Outfit", "Hind Siliguri", sans-serif;
+        background-color: var(--background);
+        color: var(--text-main);
+        min-height: 100vh;
+        display: flex;
+      }
+
+      /* Sidebar */
+      .sidebar {
+        width: 280px;
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+      }
+
+      .logo {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .nav-links {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .nav-links a {
+        text-decoration: none;
+        color: var(--text-dim);
+        padding: 0.75rem 1rem;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        transition: all 0.2s;
+      }
+
+      .nav-links a:hover,
+      .nav-links a.active {
+        background: var(--primary);
+        color: white;
+      }
+
+      /* Main Content */
+      .main-content {
+        flex: 1;
+        padding: 2rem;
+        overflow-y: auto;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+      }
+
+      .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Responsive Grid */
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+      }
+
+      .card {
+        background: var(--glass);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        transition: transform 0.3s;
+      }
+
+      .card:hover {
+        transform: translateY(-5px);
+      }
+
+      h1,
+      h2,
+      h3 {
+        color: var(--text-main);
+      }
+      p {
+        color: var(--text-dim);
+        line-height: 1.6;
+      }
+
+      .btn {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+
+      .badge-high {
+        background: #fee2e2;
+        color: #ef4444;
+      }
+      .badge-medium {
+        background: #fef3c7;
+        color: #f59e0b;
+      }
+      .badge-low {
+        background: #dcfce7;
+        color: #10b981;
+      }
+    </style>
+    {% block head %}{% endblock %}
+  </head>
+  <body>
+    <div class="sidebar">
+      <div class="logo"><i class="fas fa-bolt"></i> EcomPredictor</div>
+      <ul class="nav-links">
+        <li>
+          <a href="/" id="nav-dashboard"
+            ><i class="fas fa-chart-line"></i> ড্যাশবোর্ড</a
+          >
+        </li>
+        <li>
+          <a href="/chat" id="nav-chat"
+            ><i class="fas fa-comments"></i> এআই চ্যাটবট</a
+          >
+        </li>
+        <li>
+          <a href="#"><i class="fas fa-box"></i> ইনভেন্টরি</a>
+        </li>
+        <li>
+          <a href="#"><i class="fas fa-shopping-cart"></i> অর্ডারসমূহ</a>
+        </li>
+        <li>
+          <a href="/profile" id="nav-profile"
+            ><i class="fas fa-user-circle"></i> প্রোফাইল</a
+          >
+        </li>
+        <li>
+          <a href="#"><i class="fas fa-cog"></i> সেটিংস</a>
+        </li>
+        <hr style="border: 0.5px solid var(--border); margin: 1rem 0" />
+        <li>
+          <a href="/api/v1/admin/export/pdf"
+            ><i class="fas fa-file-pdf"></i> রিপোর্ট ডাউনলোড (PDF)</a
+          >
+        </li>
+        <li>
+          <a href="/api/v1/admin/export/excel"
+            ><i class="fas fa-file-excel"></i> এক্সেল এক্সপোর্ট</a
+          >
+        </li>
+      </ul>
+    </div>
+
+    <div class="main-content">
+      <div class="header">
+        <h2>{{ title }}</h2>
+        <div class="user-profile">
+          <span>ব্যবসায়ী ভাই</span>
+          <div class="avatar"><i class="fas fa-user"></i></div>
+        </div>
+      </div>
+
+      {% block content %}{% endblock %}
+    </div>
+
+    <!-- Floating AI Assistant -->
+    <div
+      id="ai-widget"
+      style="position: fixed; bottom: 2rem; right: 2rem; z-index: 1000"
+    >
+      <button
+        id="ai-toggle"
+        style="
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          background: var(--primary);
+          color: white;
+          border: none;
+          cursor: pointer;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+          font-size: 1.5rem;
+        "
+      >
+        <i class="fas fa-robot"></i>
+      </button>
+      <div
+        id="ai-chat-box"
+        style="
+          display: none;
+          position: absolute;
+          bottom: 80px;
+          right: 0;
+          width: 350px;
+          height: 450px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 1rem;
+          flex-direction: column;
+          overflow: hidden;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        "
+      >
+        <div
+          style="
+            background: var(--primary);
+            padding: 1rem;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          "
+        >
+          <span><i class="fas fa-robot"></i> এআই চ্যাট সাপোর্ট</span>
+          <i class="fas fa-times" id="close-chat" style="cursor: pointer"></i>
+        </div>
+        <div
+          id="chat-messages"
+          style="
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+          "
+        >
+          <div
+            style="
+              background: rgba(255, 255, 255, 0.05);
+              padding: 0.75rem;
+              border-radius: 0.5rem;
+              max-width: 85%;
+            "
+          >
+            আসসালামু আলাইকুম! আমি আপনার এআই এসিস্ট্যান্ট। আমি আপনাকে কীভাবে
+            সাহায্য করতে পারি?
+          </div>
+        </div>
+        <div
+          style="
+            padding: 1rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 0.5rem;
+          "
+        >
+          <input
+            type="text"
+            id="chat-input"
+            placeholder="এখানে লিখুন..."
+            style="
+              flex: 1;
+              background: var(--background);
+              border: 1px solid var(--border);
+              color: white;
+              padding: 0.5rem;
+              border-radius: 0.25rem;
+            "
+          />
+          <button id="send-btn" class="btn" style="padding: 0.5rem">
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Highlighting active nav
+      const path = window.location.pathname;
+      if (path === "/")
+        document.getElementById("nav-dashboard").classList.add("active");
+      if (path === "/chat")
+        document.getElementById("nav-chat").classList.add("active");
+      if (path === "/profile")
+        document.getElementById("nav-profile").classList.add("active");
+
+      // Floating Widget Toggle
+      const toggle = document.getElementById("ai-toggle");
+      const box = document.getElementById("ai-chat-box");
+      const close = document.getElementById("close-chat");
+
+      toggle.onclick = () => {
+        box.style.display = box.style.display === "none" ? "flex" : "none";
+      };
+      close.onclick = () => (box.style.display = "none");
+
+      // Chat logic
+      const sendBtn = document.getElementById("send-btn");
+      const chatInput = document.getElementById("chat-input");
+      const chatMessages = document.getElementById("chat-messages");
+
+      async function sendMessage() {
+        const msg = chatInput.value.trim();
+        if (!msg) return;
+
+        // Add user message
+        const userDiv = document.createElement("div");
+        userDiv.style.cssText =
+          "background: var(--primary); color: white; padding: 0.75rem; border-radius: 0.5rem; max-width: 85%; align-self: flex-end;";
+        userDiv.innerText = msg;
+        chatMessages.appendChild(userDiv);
+        chatInput.value = "";
+
+        // Loading message
+        const botDiv = document.createElement("div");
+        botDiv.style.cssText =
+          "background: rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 0.5rem; max-width: 85%;";
+        botDiv.innerText = "...";
+        chatMessages.appendChild(botDiv);
+
+        try {
+          const response = await fetch("/api/v1/chatbot/ask", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: msg }),
+          });
+          const data = await response.json();
+          botDiv.innerText = data.reply;
+        } catch (e) {
+          botDiv.innerText = "দুঃখিত, কোনো একটি সমস্যা হয়েছে।";
+        }
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      sendBtn.onclick = sendMessage;
+      chatInput.onkeypress = (e) => {
+        if (e.key === "Enter") sendMessage();
+      };
+    </script>
+  </body>
+</html>

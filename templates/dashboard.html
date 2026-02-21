@@ -1,0 +1,189 @@
+{% extends "base.html" %} {% block content %}
+<div class="grid">
+  <!-- Quick Stats -->
+  <div class="card" style="grid-column: span 1.5">
+    <h3>
+      <i class="fas fa-brain" style="color: var(--primary)"></i> এআই মার্চেন্ট
+      অ্যাডভাইজার
+    </h3>
+    <p style="margin: 1rem 0">
+      আপনার ব্যবসার বর্তমান অবস্থা এবং বিশেষ পরামর্শ পেতে নিচে প্রশ্ন করুন।
+    </p>
+    <div
+      style="
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+      "
+    >
+      <em>"রংপুরে পাঞ্জাবির চাহিদা কেমন?"</em> - এই ধরনের প্রশ্ন করতে পারেন।
+    </div>
+    <div style="display: flex; gap: 0.5rem">
+      <input
+        type="text"
+        id="advisorQuery"
+        placeholder="এখানে প্রশ্ন লিখুন..."
+        style="
+          flex: 1;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          color: white;
+          padding: 0.75rem;
+          border-radius: 0.5rem;
+        "
+      />
+      <button class="btn">জিজ্ঞেস করুন</button>
+    </div>
+  </div>
+
+  <!-- Summary Stats -->
+  <div style="display: flex; flex-direction: column; gap: 1.5rem">
+    <div class="card">
+      <h3>মোট রেভিনিউ</h3>
+      <h1 style="font-size: 2.5rem; margin: 0.5rem 0">
+        ৳{{ stats.total_revenue or '0' }}
+      </h1>
+      <p><span style="color: #10b981">↑ ১২%</span> গত মাস থেকে</p>
+    </div>
+    <div class="card">
+      <h3>মোট অর্ডার</h3>
+      <h1 style="font-size: 2.5rem; margin: 0.5rem 0">
+        {{ stats.total_orders or '0' }}
+      </h1>
+      <p><span style="color: #6366f1">●</span> লাইভ আপডেট</p>
+    </div>
+  </div>
+</div>
+
+<!-- AI Performance Charts -->
+<div style="margin-top: 2.5rem">
+  <h3 style="margin-bottom: 1.5rem">
+    <i class="fas fa-chart-pie" style="color: var(--primary)"></i> বিজনেস
+    পারফরম্যান্স (AI Analytics)
+  </h3>
+  <div class="grid">
+    <div class="card">
+      <h4>অঞ্চল ভিত্তিক ডিমান্ড</h4>
+      <canvas id="regionChart" style="margin-top: 1rem"></canvas>
+    </div>
+    <div class="card">
+      <h4>সেরা পণ্য (সেরা ৫টি)</h4>
+      <canvas id="productChart" style="margin-top: 1rem"></canvas>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top: 2.5rem">
+  <h3 style="margin-bottom: 1.5rem">
+    <i class="fas fa-lightbulb" style="color: #f59e0b"></i> আজকের বিশেষ এআই
+    ইনসাইট (AI Insights)
+  </h3>
+  <div class="grid">
+    {% for insight in insights %}
+    <div
+      class="card"
+      style="border-left: 4px solid {% if insight.priority == 'high' %}#ef4444{% elif insight.priority == 'medium' %}#f59e0b{% else %}#10b981{% endif %};"
+    >
+      <div
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 1rem;
+        "
+      >
+        <span class="badge badge-{{ insight.priority }}"
+          >{{ insight.category|upper }}</span
+        >
+        <small style="color: var(--text-dim)"
+          >{{ insight.priority|capitalize }} Priority</small
+        >
+      </div>
+      <h4 style="margin-bottom: 0.5rem">{{ insight.title }}</h4>
+      <p>{{ insight.message }}</p>
+    </div>
+    {% endfor %} {% if not insights %}
+    <div class="card">
+      <p>
+        বর্তমানে কোনো নতুন ইনসাইট নেই। ডাটাবেজে তথ্য যোগ হলে এআই আপনাকে আপডেট
+        দিবে।
+      </p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div style="margin-top: 2.5rem">
+  <h3 style="margin-bottom: 1.5rem">
+    <i class="fas fa-exclamation-triangle" style="color: #ef4444"></i> ইনভেন্টরি
+    অ্যালার্ট (Stock Intelligence)
+  </h3>
+  <div class="grid">
+    {% for alert in inventory.low_stock_items %}
+    <div class="card" style="background: rgba(239, 68, 68, 0.1)">
+      <h4 style="color: #f87171">{{ alert.product_name }} - স্টক শেষ হচ্ছে!</h4>
+      <p>বর্তমান স্টক: <strong>{{ alert.current_stock }}</strong> পিস।</p>
+      <p>
+        ধারণা করা হচ্ছে আগামী
+        <strong>{{ alert.predicted_stock_out_days }}</strong> দিনের মধ্যে শেষ
+        হয়ে যাবে।
+      </p>
+      <button
+        class="btn"
+        style="margin-top: 1rem; background: #ef4444; width: 100%"
+      >
+        এখনই অর্ডার করুন
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+  // Region Chart
+  const regionCtx = document.getElementById('regionChart').getContext('2d');
+  new Chart(regionCtx, {
+      type: 'doughnut',
+      data: {
+          labels: {{ charts.regions | tojson }},
+          datasets: [{
+              data: {{ charts.region_counts | tojson }},
+              backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
+              borderWidth: 0
+          }]
+      },
+      options: {
+          responsive: true,
+          plugins: {
+              legend: { position: 'bottom', labels: { color: '#94a3b8' } }
+          }
+      }
+  });
+
+  // Product Chart
+  const productCtx = document.getElementById('productChart').getContext('2d');
+  new Chart(productCtx, {
+      type: 'bar',
+      data: {
+          labels: {{ charts.products | tojson }},
+          datasets: [{
+              label: 'বিক্রি (পিস)',
+              data: {{ charts.product_counts | tojson }},
+              backgroundColor: '#6366f1',
+              borderRadius: 5
+          }]
+      },
+      options: {
+          responsive: true,
+          scales: {
+              y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+              x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+          },
+          plugins: {
+              legend: { display: false }
+          }
+      }
+  });
+</script>
+{% endblock %}

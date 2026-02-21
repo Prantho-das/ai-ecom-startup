@@ -1,0 +1,128 @@
+{% extends "base.html" %} {% block content %}
+<div
+  class="card"
+  style="
+    max-width: 800px;
+    margin: 0 auto;
+    height: calc(100vh - 200px);
+    display: flex;
+    flex-direction: column;
+  "
+>
+  <div
+    style="
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    "
+  >
+    <div class="avatar" style="width: 50px; height: 50px; font-size: 1.5rem">
+      <i class="fas fa-robot"></i>
+    </div>
+    <div>
+      <h3 style="margin: 0">ফুল-স্ক্রিন এআই চ্যাট</h3>
+      <p style="font-size: 0.875rem; color: #10b981">
+        <i class="fas fa-circle" style="font-size: 0.5rem"></i> অনলাইন |
+        বিশেষজ্ঞ সহায়তা
+      </p>
+    </div>
+  </div>
+
+  <div
+    id="full-chat-messages"
+    style="
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 0.5rem;
+    "
+  >
+    <div
+      style="
+        background: var(--surface);
+        border: 1px solid var(--border);
+        padding: 1rem;
+        border-radius: 0.5rem;
+        max-width: 70%;
+      "
+    >
+      স্বাগতম! আমি আপনার শপ এসিস্ট্যান্ট। আপনি যেকোনো পণ্য বা অর্ডার নিয়ে আমাকে
+      প্রশ্ন করতে পারেন।
+    </div>
+  </div>
+
+  <div style="margin-top: 1rem; display: flex; gap: 1rem">
+    <input
+      type="text"
+      id="full-chat-input"
+      placeholder="আপনার প্রশ্নটি এখানে লিখুন..."
+      style="
+        flex: 1;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: white;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        font-size: 1rem;
+      "
+    />
+    <button
+      id="full-send-btn"
+      class="btn"
+      style="padding: 0 2rem; font-size: 1rem"
+    >
+      <i class="fas fa-paper-plane"></i> পাঠান
+    </button>
+  </div>
+</div>
+
+<script>
+  const fullSendBtn = document.getElementById("full-send-btn");
+  const fullChatInput = document.getElementById("full-chat-input");
+  const fullChatMessages = document.getElementById("full-chat-messages");
+
+  async function sendFullMessage() {
+    const msg = fullChatInput.value.trim();
+    if (!msg) return;
+
+    // User label
+    const userWrapper = document.createElement("div");
+    userWrapper.style.cssText = "align-self: flex-end; max-width: 70%;";
+    userWrapper.innerHTML = `<div style="background: var(--primary); padding: 1rem; border-radius: 0.5rem; color: white;">${msg}</div>`;
+    fullChatMessages.appendChild(userWrapper);
+    fullChatInput.value = "";
+
+    // Bot label
+    const botWrapper = document.createElement("div");
+    botWrapper.style.cssText = "align-self: flex-start; max-width: 70%;";
+    botWrapper.innerHTML = `<div style="background: var(--surface); border: 1px solid var(--border); padding: 1rem; border-radius: 0.5rem;">টাইপ করছে...</div>`;
+    fullChatMessages.appendChild(botWrapper);
+
+    try {
+      const response = await fetch("/api/v1/chatbot/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: msg }),
+      });
+      const data = await response.json();
+      botWrapper.querySelector("div").innerText = data.reply;
+    } catch (e) {
+      botWrapper.querySelector("div").innerText =
+        "দুঃখিত, কোনো একটি সমস্যা হয়েছে।";
+    }
+    fullChatMessages.scrollTop = fullChatMessages.scrollHeight;
+  }
+
+  fullSendBtn.onclick = sendFullMessage;
+  fullChatInput.onkeypress = (e) => {
+    if (e.key === "Enter") sendFullMessage();
+  };
+</script>
+{% endblock %}
