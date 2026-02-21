@@ -6,6 +6,7 @@ from app.orders.models import Order, OrderDetail
 from app.products.models import Product
 from app.users.models import User, UserAddress
 from app.insights.schemas import InsightBase
+from app.utils.cache import cache_instance
 
 class InsightService:
     @staticmethod
@@ -158,9 +159,17 @@ class InsightService:
 
     @classmethod
     def get_all_insights(cls, db: Session):
+        cache_key = "all_dashboard_insights"
+        cached_insights = cache_instance.get(cache_key)
+        if cached_insights:
+            return cached_insights
+
         all_insights = []
         all_insights.extend(cls.get_ad_target_insights(db))
         all_insights.extend(cls.get_pricing_signals(db))
         all_insights.extend(cls.get_sourcing_guide(db))
         all_insights.extend(cls.get_personalized_offers(db))
+        
+        # Cache for 30 minutes
+        cache_instance.set(cache_key, all_insights, ttl_seconds=1800)
         return all_insights

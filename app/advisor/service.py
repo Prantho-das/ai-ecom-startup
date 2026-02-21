@@ -7,6 +7,8 @@ from app.products.models import Product
 from app.users.models import User, UserAddress
 from datetime import datetime, timedelta
 
+from app.utils.cache import cache_instance
+
 # Configure Gemini
 try:
     genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
@@ -16,7 +18,14 @@ except Exception:
 
 class AdvisorService:
     @staticmethod
-    def get_business_context(db: Session):
+    def get_business_context(db: Session, force_refresh: bool = False):
+        # Cache context for 15 minutes
+        cache_key = "business_context_summary"
+        if not force_refresh:
+            cached_context = cache_instance.get(cache_key)
+            if cached_context:
+                return cached_context
+
         # Fetch key metrics for context
         total_orders = db.query(Order).count()
         total_revenue = db.query(func.sum(Order.total_amount)).scalar() or 0
@@ -30,7 +39,7 @@ class AdvisorService:
          .join(Order, User.id == Order.user_id)\
          .group_by(UserAddress.district)\
          .order_by(desc('revenue'))\
-         .limit(5).all()
+         .limit(3).all() # Reduced from 5 to 3 to save tokens
         
         # Product stats
         top_products = db.query(
@@ -39,18 +48,13 @@ class AdvisorService:
         ).join(OrderDetail, Product.id == OrderDetail.product_id)\
          .group_by(Product.id)\
          .order_by(desc('qty_sold'))\
-         .limit(5).all()
+         .limit(3).all() # Reduced from 5 to 3 to save tokens
 
-        context = f"""
-        দোকানের মোট অর্ডার: {total_orders}
-        মোট আয়: {total_revenue} টাকা
+        context = f"Orders:{total_orders}, Rev:{total_revenue}. "
+        context += "Top Regions: " + ", ".join([f"{r[0]}({r[1]} orders)" for r in region_stats]) + ". "
+        context += "Top Prods: " + ", ".join([f"{p[0]}({p[1]} sold)" for p in top_products])
         
-        বেশি বিক্রি হওয়া অঞ্চলসমূহ:
-        {", ".join([f"{r[0]} ({r[1]} অর্ডার, {r[2]} টাকা)" for r in region_stats])}
-        
-        সেরা পণ্যসমূহ:
-        {", ".join([f"{p[0]} ({p[1]} পিস)" for p in top_products])}
-        """
+        cache_instance.set(cache_key, context, ttl_seconds=900) # 15 mins cache
         return context
 
     @staticmethod
@@ -58,21 +62,28 @@ class AdvisorService:
         if not model:
             return "দুঃখিত, এআই অ্যাডভাইজার এই মুহূর্তে সক্রিয় নেই। অনুগ্রহ করে আপনার API Key চেক করুন।"
         
+        # Cache AI responses for identical queries for 1 hour
+        cache_key = f"ai_advisor_response_{query.strip().lower()}"
+        cached_response = cache_instance.get(cache_key)
+        if cached_response:
+            return cached_response
+
         context = AdvisorService.get_business_context(db)
         
         system_prompt = f"""
         তুমি একজন 'AI Merchant Advisor'। তোমার কাজ হলো ব্যবসায়ীদের তাদের দোকানের ডেটা বিশ্লেষণ করে পরামর্শ দেওয়া। 
         খুব মার্জিত এবং প্রফেশনাল বাংলায় উত্তর দাও।
-        নিচে দোকানের বর্তমান ডাটাবেজ থেকে কিছু তথ্য দেওয়া হলো। এই তথ্যের ভিত্তিতে উত্তর দাও:
-        {context}
+        দোকানের ডেটা: {context}
         
         ব্যবসায়ীর প্রশ্ন: {query}
         
-        পরামর্শ দেওয়ার সময় ডেটা সাপোর্ট ব্যবহার করো (যেমন: 'রংপুর অঞ্চলে আপনার বিক্রি ভালো হচ্ছে, সেখানে বেশি ফোকাস করুন')।
+        পরামর্শ দেওয়ার সময় ডেটা সাপোর্ট ব্যবহার করো।
         """
 
         try:
             response = model.generate_content(system_prompt)
-            return response.text
+            answer = response.text
+            cache_instance.set(cache_key, answer, ttl_seconds=3600) # 1 hour cache
+            return answer
         except Exception as e:
             return f"ত্রুটি: {str(e)}"

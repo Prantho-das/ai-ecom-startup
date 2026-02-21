@@ -2,7 +2,7 @@ import google.generativeai as genai
 import os
 from sqlalchemy.orm import Session
 from app.products.models import Product
-from app.config import settings
+from app.utils.cache import cache_instance
 
 # Configure Gemini
 try:
@@ -14,32 +14,27 @@ except Exception:
 class ChatbotService:
     @staticmethod
     def get_reply(db: Session, message: str, product_id: int = None):
+        # Cache key based on message and product_id
+        cache_key = f"chatbot_reply_{product_id}_{message.strip().lower()}"
+        cached_reply = cache_instance.get(cache_key)
+        if cached_reply:
+            return cached_reply
+
         product_context = ""
         if product_id:
             product = db.query(Product).filter(Product.id == product_id).first()
             if product:
-                product_context = f"""
-                পণ্যটির নাম: {product.product_name}
-                দাম: {product.price} টাকা
-                বিস্তারিত: {product.variant or 'তথ্য নেই'}
-                ওয়েবসাইট: {product.source_website}
-                """
+                product_context = f"Name:{product.product_name}, Price:{product.price}, Info:{product.variant}"
 
-        system_prompt = f"""
-        তুমি একজন দক্ষ কাস্টমার সাপোর্ট এজেন্ট। তোমার কাজ হলো কাস্টমারদের প্রশ্নের উত্তর দেওয়া। 
-        সব উত্তর মার্জিত এবং বন্ধুসুলভ বাংলায় দাও। 
-        যদি পণ্যের তথ্য দেওয়া থাকে, তবে সেটি ব্যবহার করো।
-        পণ্যের তথ্য:
-        {product_context}
-        
-        কাস্টমারের প্রশ্ন: {message}
-        """
+        system_prompt = f"You are a helpful support agent. Reply in polite Bengali. Context: {product_context}. Input: {message}"
 
         if not model:
-            return "দুঃখিত, বর্তমানে এআই সার্ভিসটি পাওয়া যাচ্ছে না। অনুগ্রহ করে পরে চেষ্টা করুন।"
+            return "দুঃখিত, বর্তমানে এআই সার্ভিসটি পাওয়া যাচ্ছে না।"
 
         try:
             response = model.generate_content(system_prompt)
-            return response.text
+            reply = response.text
+            cache_instance.set(cache_key, reply, ttl_seconds=3600) # Cache for 1 hour
+            return reply
         except Exception as e:
             return f"ত্রুটি: {str(e)}"
